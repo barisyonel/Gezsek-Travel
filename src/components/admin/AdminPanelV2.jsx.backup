@@ -1,0 +1,1801 @@
+import React, { useState, useEffect } from 'react';
+import FileUpload from './FileUpload';
+import './AdminPanelV2.css';
+
+const AdminPanelV2 = () => {
+  // State management
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
+  // Data states
+  const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [tours, setTours] = useState([]);
+  const [blogs, setBlogs] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+  
+  // Modal states
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
+  const [showBlogModal, setShowBlogModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  
+  // Form states
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedTour, setSelectedTour] = useState(null);
+  const [selectedBlog, setSelectedBlog] = useState(null);
+  
+  // User form state
+  const [userForm, setUserForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    birthDate: '',
+    gender: 'erkek',
+    isAdmin: false
+  });
+  
+  // Edit user form state
+  const [editUserForm, setEditUserForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    verified: true,
+    isAdmin: false
+  });
+  
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  
+  // Tour form states
+  const [tourForm, setTourForm] = useState({
+    title: '',
+    description: '',
+    price: '',
+    duration: '',
+    location: '',
+    category: 'Yaz Turları',
+    image: '',
+    maxParticipants: '',
+    startDate: '',
+    endDate: '',
+    isActive: true
+  });
+  
+  const [editTourForm, setEditTourForm] = useState({
+    title: '',
+    description: '',
+    price: '',
+    duration: '',
+    location: '',
+    category: 'Yaz Turları',
+    image: '',
+    maxParticipants: '',
+    startDate: '',
+    endDate: '',
+    isActive: true
+  });
+  
+  const [showEditTourModal, setShowEditTourModal] = useState(false);
+  
+  // Filter states
+  const [userFilters, setUserFilters] = useState({ search: '', status: 'all', role: 'all' });
+  const [tourFilters, setTourFilters] = useState({ search: '', category: 'all', status: 'all' });
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      const [statsRes, usersRes, toursRes, blogsRes, reservationsRes, activitiesRes] = await Promise.all([
+        fetch('/api/auth/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/auth/admin/users', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/tours/admin', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/blog/admin/all', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/tours/admin/reservations', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/admin/activities', { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (usersRes.ok) setUsers(await usersRes.json());
+      if (toursRes.ok) {
+        const toursData = await toursRes.json();
+        setTours(toursData.tours || toursData || []);
+      }
+      if (blogsRes.ok) setBlogs(await blogsRes.json());
+      if (reservationsRes.ok) {
+        const reservationsData = await reservationsRes.json();
+        setReservations(reservationsData.reservations || reservationsData);
+      }
+      if (activitiesRes.ok) setRecentActivities(await activitiesRes.json());
+      
+    } catch (err) {
+      setError('Veriler yüklenirken hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkAction = async (action, selectedIds) => {
+    // Toplu işlemler
+    console.log(`${action} işlemi ${selectedIds.length} öğe için uygulanıyor`);
+  };
+
+  const exportData = (type) => {
+    // Veri export işlemleri
+    console.log(`${type} verisi export ediliyor`);
+  };
+
+  const handleUserFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setUserForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Using token:', token ? token.substring(0, 50) + '...' : 'No token');
+      
+      if (!token) {
+        alert('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+        return;
+      }
+      
+      const response = await fetch('/api/auth/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(userForm)
+      });
+
+      if (response.ok) {
+        const newUser = await response.json();
+        console.log('New user created:', newUser);
+        setUsers(prev => [...prev, newUser]);
+        setShowUserModal(false);
+        setUserForm({
+          name: '',
+          email: '',
+          phone: '',
+          password: '',
+          birthDate: '',
+          gender: 'erkek',
+          isAdmin: false
+        });
+        alert('Kullanıcı başarıyla eklendi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        console.error('API Error:', error);
+        alert(`Hata: ${error.message}`);
+      }
+    } catch (err) {
+      alert('Kullanıcı eklenirken hata oluştu');
+      console.error('Add user error:', err);
+      console.error('Error details:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditUserFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditUserForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleEditUser = (user) => {
+    setEditUserForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '',
+      verified: user.verified,
+      isAdmin: user.isAdmin
+    });
+    setSelectedUser(user);
+    setShowEditUserModal(true);
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/auth/admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editUserForm)
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setUsers(prev => prev.map(user => 
+          user.id === selectedUser.id ? { ...user, ...updatedUser } : user
+        ));
+        setShowEditUserModal(false);
+        setSelectedUser(null);
+        alert('Kullanıcı başarıyla güncellendi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        alert(`Hata: ${error.message}`);
+      }
+    } catch (err) {
+      alert('Kullanıcı güncellenirken hata oluştu');
+      console.error('Update user error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!confirm(`${userName} kullanıcısını silmek istediğinizden emin misiniz?`)) {
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/auth/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setUsers(prev => prev.filter(user => user.id !== userId));
+        alert('Kullanıcı başarıyla silindi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        alert(`Hata: ${error.message}`);
+      }
+    } catch (err) {
+      alert('Kullanıcı silinirken hata oluştu');
+      console.error('Delete user error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Tour management functions
+  const handleTourFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setTourForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleAddTour = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
+        return;
+      }
+
+      const response = await fetch('/api/tours', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(tourForm)
+      });
+
+      if (response.ok) {
+        const newTour = await response.json();
+        setTours(prev => [...prev, newTour]);
+        setTourForm({
+          title: '',
+          description: '',
+          price: '',
+          duration: '',
+          location: '',
+          category: 'Yaz Turları',
+          image: '',
+          maxParticipants: '',
+          startDate: '',
+          endDate: '',
+          isActive: true
+        });
+        setShowTourModal(false);
+        alert('Tur başarıyla eklendi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Tur eklenirken hata oluştu');
+      }
+    } catch (err) {
+      alert('Tur eklenirken hata oluştu');
+      console.error('Add tour error:', err);
+    }
+  };
+
+  const handleEditTourFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditTourForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleEditTour = (tour) => {
+    setSelectedTour(tour);
+    setEditTourForm({
+      title: tour.title,
+      description: tour.description,
+      price: tour.price,
+      duration: tour.duration,
+      location: tour.location,
+      category: tour.category,
+      image: tour.image,
+      maxParticipants: tour.maxParticipants,
+      startDate: tour.startDate,
+      endDate: tour.endDate,
+      isActive: tour.isActive
+    });
+    setShowEditTourModal(true);
+  };
+
+  const handleUpdateTour = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
+        return;
+      }
+
+      const response = await fetch(`/api/tours/${selectedTour._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editTourForm)
+      });
+
+      if (response.ok) {
+        const updatedTour = await response.json();
+        setTours(prev => prev.map(tour => 
+          tour._id === selectedTour._id ? updatedTour : tour
+        ));
+        setShowEditTourModal(false);
+        setSelectedTour(null);
+        alert('Tur başarıyla güncellendi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Tur güncellenirken hata oluştu');
+      }
+    } catch (err) {
+      alert('Tur güncellenirken hata oluştu');
+      console.error('Update tour error:', err);
+    }
+  };
+
+  const handleDeleteTour = async (tourId, tourTitle) => {
+    if (!window.confirm(`${tourTitle} turunu silmek istediğinizden emin misiniz?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
+        return;
+      }
+
+      const response = await fetch(`/api/tours/${tourId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setTours(prev => prev.filter(tour => tour._id !== tourId));
+        alert('Tur başarıyla silindi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Tur silinirken hata oluştu');
+      }
+    } catch (err) {
+      alert('Tur silinirken hata oluştu');
+      console.error('Delete tour error:', err);
+    }
+  };
+
+  const renderDashboard = () => (
+    <div className="dashboard-grid">
+      {/* İstatistik Kartları */}
+      <div className="stats-cards">
+        <div className="stat-card">
+          <div className="stat-icon">👥</div>
+          <div className="stat-content">
+            <h3>{stats?.totalUsers || 0}</h3>
+            <p>Toplam Kullanıcı</p>
+            <span className="stat-change positive">+12%</span>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">🗺️</div>
+          <div className="stat-content">
+            <h3>{tours.length}</h3>
+            <p>Aktif Tur</p>
+            <span className="stat-change positive">+5%</span>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">💰</div>
+          <div className="stat-content">
+            <h3>₺{stats?.totalRevenue || 0}</h3>
+            <p>Toplam Gelir</p>
+            <span className="stat-change positive">+18%</span>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">📈</div>
+          <div className="stat-content">
+            <h3>{stats?.monthlyBookings || 0}</h3>
+            <p>Aylık Rezervasyon</p>
+            <span className="stat-change negative">-3%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Grafikler */}
+      <div className="charts-section">
+        <div className="chart-card">
+          <h3>Rezervasyon Trendi</h3>
+          <div className="chart-placeholder">
+            <p>📊 Grafik burada görünecek</p>
+          </div>
+        </div>
+        
+        <div className="chart-card">
+          <h3>Kullanıcı Aktivitesi</h3>
+          <div className="chart-placeholder">
+            <p>📈 Aktivite grafiği</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Son Aktiviteler */}
+      <div className="recent-activities">
+        <h3>Son Aktiviteler</h3>
+        <div className="activity-list">
+          {recentActivities.slice(0, 5).map((activity, index) => (
+            <div key={index} className="activity-item">
+              <div className="activity-icon">{activity.icon}</div>
+              <div className="activity-content">
+                <p>{activity.description}</p>
+                <span>{activity.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hızlı Aksiyonlar */}
+      <div className="quick-actions">
+        <h3>Hızlı Aksiyonlar</h3>
+        <div className="action-buttons">
+          <button onClick={() => setShowTourModal(true)} className="action-btn">
+            ➕ Yeni Tur Ekle
+          </button>
+          <button onClick={() => setShowUserModal(true)} className="action-btn">
+            👤 Kullanıcı Ekle
+          </button>
+          <button onClick={() => exportData('users')} className="action-btn">
+            📊 Rapor İndir
+          </button>
+          <button onClick={() => setShowSettingsModal(true)} className="action-btn">
+            ⚙️ Ayarlar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderUsers = () => (
+    <div className="users-section">
+      <div className="section-header">
+        <h2>Kullanıcı Yönetimi</h2>
+        <div className="header-actions">
+          <input
+            type="text"
+            placeholder="Kullanıcı ara..."
+            value={userFilters.search}
+            onChange={(e) => setUserFilters({...userFilters, search: e.target.value})}
+            className="search-input"
+          />
+          <select
+            value={userFilters.status}
+            onChange={(e) => setUserFilters({...userFilters, status: e.target.value})}
+            className="filter-select"
+          >
+            <option value="all">Tüm Durumlar</option>
+            <option value="active">Aktif</option>
+            <option value="inactive">Pasif</option>
+          </select>
+          <button onClick={() => setShowUserModal(true)} className="add-btn">
+            ➕ Yeni Kullanıcı
+          </button>
+        </div>
+      </div>
+
+      <div className="table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" /></th>
+              <th>Kullanıcı</th>
+              <th>Email</th>
+              <th>Telefon</th>
+              <th>Durum</th>
+              <th>Kayıt Tarihi</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map(user => (
+              <tr key={user._id}>
+                <td><input type="checkbox" /></td>
+                <td>
+                  <div className="user-info">
+                    <div className="user-avatar">{user.name.charAt(0)}</div>
+                    <div>
+                      <p className="user-name">{user.name}</p>
+                      <span className="user-role">{user.isAdmin ? 'Admin' : 'Kullanıcı'}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>{user.email}</td>
+                <td>{user.phone}</td>
+                <td>
+                  <span className={`status-badge ${user.verified ? 'active' : 'inactive'}`}>
+                    {user.verified ? 'Aktif' : 'Pasif'}
+                  </span>
+                </td>
+                <td>{new Date(user.createdAt).toLocaleDateString('tr-TR')}</td>
+                <td>
+                  <div className="action-buttons">
+                    <button 
+                      className="edit-btn" 
+                      onClick={() => handleEditUser(user)}
+                      title="Düzenle"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      className="delete-btn" 
+                      onClick={() => handleDeleteUser(user._id, user.name)}
+                      title="Sil"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderTours = () => (
+    <div className="tours-section">
+      <div className="section-header">
+        <h2>Tur Yönetimi</h2>
+        <div className="header-actions">
+          <input
+            type="text"
+            placeholder="Tur ara..."
+            value={tourFilters.search}
+            onChange={(e) => setTourFilters({...tourFilters, search: e.target.value})}
+            className="search-input"
+          />
+          <select
+            value={tourFilters.category}
+            onChange={(e) => setTourFilters({...tourFilters, category: e.target.value})}
+            className="filter-select"
+          >
+            <option value="all">Tüm Kategoriler</option>
+            <option value="Yaz Turları">Yaz Turları</option>
+            <option value="Kültür Turları">Kültür Turları</option>
+            <option value="Gemi Turları">Gemi Turları</option>
+            <option value="Kıbrıs Turları">Kıbrıs Turları</option>
+          </select>
+          <button onClick={() => setShowTourModal(true)} className="add-btn">
+            ➕ Yeni Tur
+          </button>
+        </div>
+      </div>
+
+      <div className="tours-grid">
+        {tours.map(tour => (
+          <div key={tour._id} className="tour-card">
+            <div className="tour-image">
+              <img src={tour.image} alt={tour.title} />
+              <div className="tour-overlay">
+                <button 
+                  className="edit-btn" 
+                  onClick={() => handleEditTour(tour)}
+                  title="Düzenle"
+                >
+                  ✏️
+                </button>
+                <button 
+                  className="delete-btn" 
+                  onClick={() => handleDeleteTour(tour._id, tour.title)}
+                  title="Sil"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+            <div className="tour-content">
+              <h3>{tour.title}</h3>
+              <p className="tour-category">{tour.category}</p>
+              <p className="tour-price">₺{tour.price}</p>
+              <p className="tour-location">📍 {tour.location}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderBlogs = () => (
+    <div className="blogs-section">
+      <div className="section-header">
+        <h2>Blog Yönetimi</h2>
+        <div className="header-actions">
+          <input
+            type="text"
+            placeholder="Blog ara..."
+            className="search-input"
+          />
+          <button onClick={() => setShowBlogModal(true)} className="add-btn">
+            ➕ Yeni Blog
+          </button>
+        </div>
+      </div>
+
+      <div className="table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th>Yazar</th>
+              <th>Kategori</th>
+              <th>Durum</th>
+              <th>Tarih</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {blogs.map(blog => (
+              <tr key={blog._id}>
+                <td>{blog.title}</td>
+                <td>{blog.author}</td>
+                <td>{blog.category}</td>
+                <td>
+                  <span className={`status-badge ${blog.isPublished ? 'active' : 'inactive'}`}>
+                    {blog.isPublished ? 'Yayında' : 'Taslak'}
+                  </span>
+                </td>
+                <td>{new Date(blog.createdAt).toLocaleDateString('tr-TR')}</td>
+                <td>
+                  <div className="action-buttons">
+                    <button className="edit-btn">✏️</button>
+                    <button className="delete-btn">🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderReports = () => (
+    <div className="reports-section">
+      <div className="section-header">
+        <h2>Raporlar ve Analitik</h2>
+        <div className="header-actions">
+          <input
+            type="date"
+            value={dateRange.start}
+            onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+            className="date-input"
+          />
+          <input
+            type="date"
+            value={dateRange.end}
+            onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+            className="date-input"
+          />
+          <button onClick={() => exportData('reports')} className="export-btn">
+            📊 Rapor İndir
+          </button>
+        </div>
+      </div>
+
+      <div className="reports-grid">
+        <div className="report-card">
+          <h3>Satış Raporu</h3>
+          <div className="report-content">
+            <p>Toplam Satış: ₺{stats?.totalRevenue || 0}</p>
+            <p>Ortalama Sipariş: ₺{stats?.averageOrder || 0}</p>
+            <p>En Popüler Tur: {stats?.popularTour || 'N/A'}</p>
+          </div>
+        </div>
+
+        <div className="report-card">
+          <h3>Kullanıcı Analitikleri</h3>
+          <div className="report-content">
+            <p>Yeni Kullanıcılar: {stats?.newUsers || 0}</p>
+            <p>Aktif Kullanıcılar: {stats?.activeUsers || 0}</p>
+            <p>Dönüşüm Oranı: {stats?.conversionRate || 0}%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSettings = () => (
+    <div className="settings-section">
+      <h2>Sistem Ayarları</h2>
+      
+      <div className="settings-grid">
+        <div className="setting-card">
+          <h3>Genel Ayarlar</h3>
+          <div className="setting-item">
+            <label>Site Adı</label>
+            <input type="text" defaultValue="Gezsek Travel" />
+          </div>
+          <div className="setting-item">
+            <label>Site Açıklaması</label>
+            <textarea defaultValue="Profesyonel seyahat hizmetleri" />
+          </div>
+        </div>
+
+        <div className="setting-card">
+          <h3>Email Ayarları</h3>
+          <div className="setting-item">
+            <label>SMTP Sunucu</label>
+            <input type="text" defaultValue="smtp.gmail.com" />
+          </div>
+          <div className="setting-item">
+            <label>Email Adresi</label>
+            <input type="email" defaultValue="info@gezsektravel.com" />
+          </div>
+        </div>
+
+        <div className="setting-card">
+          <h3>Bildirim Ayarları</h3>
+          <div className="setting-item">
+            <label>
+              <input type="checkbox" defaultChecked />
+              Email Bildirimleri
+            </label>
+          </div>
+          <div className="setting-item">
+            <label>
+              <input type="checkbox" defaultChecked />
+              SMS Bildirimleri
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderReservations = () => (
+    <div className="reservations-section">
+      <div className="section-header">
+        <h2>📅 Rezervasyon Yönetimi</h2>
+        <div className="header-actions">
+          <select
+            value={dateRange.status || 'all'}
+            onChange={(e) => setDateRange({...dateRange, status: e.target.value})}
+            className="filter-select"
+          >
+            <option value="all">Tüm Durumlar</option>
+            <option value="pending">Beklemede</option>
+            <option value="confirmed">Onaylandı</option>
+            <option value="completed">Tamamlandı</option>
+            <option value="cancelled">İptal Edildi</option>
+          </select>
+          <button onClick={() => exportData('reservations')} className="export-btn">
+            📊 Rapor İndir
+          </button>
+        </div>
+      </div>
+
+      <div className="table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Rezervasyon ID</th>
+              <th>Müşteri</th>
+              <th>Tur</th>
+              <th>Tarih</th>
+              <th>Katılımcı</th>
+              <th>Toplam Fiyat</th>
+              <th>Durum</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservations.map(reservation => (
+              <tr key={reservation._id}>
+                <td>#{reservation._id.slice(-6)}</td>
+                <td>
+                  <div className="user-info">
+                    <div className="user-avatar">{reservation.user.name.charAt(0)}</div>
+                    <div>
+                      <p className="user-name">{reservation.user.name}</p>
+                      <span className="user-email">{reservation.user.email}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div className="tour-info">
+                    <img src={reservation.tour.image} alt={reservation.tour.title} />
+                    <div>
+                      <p className="tour-name">{reservation.tour.title}</p>
+                      <span className="tour-location">{reservation.tour.location}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>{new Date(reservation.tourDate).toLocaleDateString('tr-TR')}</td>
+                <td>{reservation.participants} kişi</td>
+                <td>₺{reservation.totalPrice}</td>
+                <td>
+                  <span className={`status-badge ${reservation.status}`}>
+                    {reservation.status === 'pending' ? 'Beklemede' :
+                     reservation.status === 'confirmed' ? 'Onaylandı' :
+                     reservation.status === 'completed' ? 'Tamamlandı' :
+                     reservation.status === 'cancelled' ? 'İptal Edildi' : reservation.status}
+                  </span>
+                </td>
+                <td>
+                  <div className="action-buttons">
+                    <button 
+                      className="view-btn"
+                      onClick={() => setSelectedReservation(reservation)}
+                    >
+                      👁️
+                    </button>
+                    {reservation.status === 'pending' && (
+                      <>
+                        <button 
+                          className="confirm-btn"
+                          onClick={() => handleStatusChange(reservation._id, 'confirmed')}
+                        >
+                          ✅
+                        </button>
+                        <button 
+                          className="cancel-btn"
+                          onClick={() => handleStatusChange(reservation._id, 'cancelled')}
+                        >
+                          ❌
+                        </button>
+                      </>
+                    )}
+                    {reservation.status === 'confirmed' && (
+                      <button 
+                        className="complete-btn"
+                        onClick={() => handleStatusChange(reservation._id, 'completed')}
+                      >
+                        🎉
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const handleStatusChange = async (reservationId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/tours/admin/reservations/${reservationId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        // Rezervasyon listesini güncelle
+        setReservations(prev => 
+          prev.map(res => 
+            res._id === reservationId 
+              ? { ...res, status: newStatus }
+              : res
+          )
+        );
+        alert('Rezervasyon durumu başarıyla güncellendi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        const data = await response.json();
+        alert(data.message);
+      }
+    } catch (err) {
+      alert('Durum güncelleme hatası');
+      console.error('Status change error:', err);
+    }
+  };
+
+  const renderEmailTest = () => {
+    const [emailType, setEmailType] = useState('new-reservation');
+    const [testEmail, setTestEmail] = useState('');
+    const [testName, setTestName] = useState('');
+    const [testTour, setTestTour] = useState('Test Turu');
+    const [testDate, setTestDate] = useState('2024-12-25');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState(null);
+
+    const handleEmailTest = async () => {
+      try {
+        setLoading(true);
+        setResult(null);
+        
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/tours/test-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            emailType,
+            userEmail: testEmail,
+            userName: testName,
+            tourTitle: testTour,
+            tourDate: testDate
+          })
+        });
+
+        const data = await response.json();
+        setResult(data);
+        if (!data.error) {
+          alert('Email test başarıyla gönderildi!');
+        }
+      } catch (err) {
+        setResult({ error: 'Email test hatası' });
+        console.error('Email test error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="email-test-section">
+        <div className="section-header">
+          <h2>📧 Email Test Paneli</h2>
+          <p>Email template'lerini test etmek için kullanın</p>
+        </div>
+
+        <div className="email-test-form">
+          <div className="form-group">
+            <label>Email Tipi:</label>
+            <select 
+              value={emailType} 
+              onChange={(e) => setEmailType(e.target.value)}
+              className="form-select"
+            >
+              <option value="new-reservation">Yeni Rezervasyon</option>
+              <option value="reservation-confirmed">Rezervasyon Onaylandı</option>
+              <option value="reservation-cancelled">Rezervasyon İptal Edildi</option>
+              <option value="tour-reminder">Tur Hatırlatması</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Test Email:</label>
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="test@example.com"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Test Adı:</label>
+            <input
+              type="text"
+              value={testName}
+              onChange={(e) => setTestName(e.target.value)}
+              placeholder="Test Kullanıcı"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Tur Adı:</label>
+            <input
+              type="text"
+              value={testTour}
+              onChange={(e) => setTestTour(e.target.value)}
+              placeholder="Test Turu"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Tur Tarihi:</label>
+            <input
+              type="date"
+              value={testDate}
+              onChange={(e) => setTestDate(e.target.value)}
+              className="form-input"
+            />
+          </div>
+
+          <button 
+            onClick={handleEmailTest}
+            disabled={loading}
+            className="test-email-btn"
+          >
+            {loading ? 'Test Ediliyor...' : '📧 Email Test Et'}
+          </button>
+        </div>
+
+        {result && (
+          <div className={`test-result ${result.error ? 'error' : 'success'}`}>
+            <h3>Test Sonucu:</h3>
+            <pre>{JSON.stringify(result, null, 2)}</pre>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="admin-panel-v2">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`admin-panel-v2 ${sidebarCollapsed ? 'collapsed' : ''}`}>
+      {/* Sidebar */}
+      <div className="admin-sidebar">
+        <div className="sidebar-header">
+          <h2>🔐 Admin Panel</h2>
+          <button 
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="collapse-btn"
+          >
+            {sidebarCollapsed ? '→' : '←'}
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          <button 
+            className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            📊 Dashboard
+          </button>
+          <button 
+            className={`nav-item ${activeTab === 'users' ? 'active' : ''}`}
+            onClick={() => setActiveTab('users')}
+          >
+            👥 Kullanıcılar
+          </button>
+          <button 
+            className={`nav-item ${activeTab === 'tours' ? 'active' : ''}`}
+            onClick={() => setActiveTab('tours')}
+          >
+            🗺️ Turlar
+          </button>
+          <button 
+            className={`nav-item ${activeTab === 'blogs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('blogs')}
+          >
+            📝 Blog
+          </button>
+          <button 
+            className={`nav-item ${activeTab === 'reservations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reservations')}
+          >
+            📅 Rezervasyonlar
+          </button>
+          <button 
+            className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reports')}
+          >
+            📈 Raporlar
+          </button>
+          <button 
+            className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            ⚙️ Ayarlar
+          </button>
+          <button 
+            className={`nav-item ${activeTab === 'email-test' ? 'active' : ''}`}
+            onClick={() => setActiveTab('email-test')}
+          >
+            📧 Email Test
+          </button>
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="admin-main">
+        <div className="main-header">
+          <h1>{activeTab === 'dashboard' ? 'Dashboard' : 
+               activeTab === 'users' ? 'Kullanıcı Yönetimi' :
+               activeTab === 'tours' ? 'Tur Yönetimi' :
+               activeTab === 'blogs' ? 'Blog Yönetimi' :
+               activeTab === 'reservations' ? 'Rezervasyonlar' :
+               activeTab === 'reports' ? 'Raporlar' : 
+               activeTab === 'email-test' ? 'Email Test' : 'Ayarlar'}</h1>
+          <div className="header-actions">
+            <button className="notification-btn">🔔</button>
+            <button className="profile-btn">👤 Admin</button>
+          </div>
+        </div>
+
+        <div className="main-content">
+          {activeTab === 'dashboard' && renderDashboard()}
+          {activeTab === 'users' && renderUsers()}
+          {activeTab === 'tours' && renderTours()}
+          {activeTab === 'blogs' && renderBlogs()}
+          {activeTab === 'reservations' && renderReservations()}
+          {activeTab === 'reports' && renderReports()}
+          {activeTab === 'settings' && renderSettings()}
+          {activeTab === 'email-test' && renderEmailTest()}
+        </div>
+      </div>
+
+      {/* User Modal */}
+      {showUserModal && (
+        <div className="modal-overlay" onClick={() => setShowUserModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Yeni Kullanıcı Ekle</h3>
+              <button 
+                onClick={() => setShowUserModal(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddUser} className="modal-form">
+              <div className="form-group">
+                <label>Ad Soyad *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={userForm.name}
+                  onChange={handleUserFormChange}
+                  required
+                  className="form-input"
+                  placeholder="Kullanıcı adı"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={userForm.email}
+                  onChange={handleUserFormChange}
+                  required
+                  className="form-input"
+                  placeholder="kullanici@example.com"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Telefon</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={userForm.phone}
+                  onChange={handleUserFormChange}
+                  className="form-input"
+                  placeholder="5551234567"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Şifre *</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={userForm.password}
+                  onChange={handleUserFormChange}
+                  required
+                  className="form-input"
+                  placeholder="Güçlü şifre"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Doğum Tarihi</label>
+                <input
+                  type="date"
+                  name="birthDate"
+                  value={userForm.birthDate}
+                  onChange={handleUserFormChange}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Cinsiyet</label>
+                <select
+                  name="gender"
+                  value={userForm.gender}
+                  onChange={handleUserFormChange}
+                  className="form-input"
+                >
+                  <option value="erkek">Erkek</option>
+                  <option value="kadın">Kadın</option>
+                  <option value="diğer">Diğer</option>
+                </select>
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="isAdmin"
+                    checked={userForm.isAdmin}
+                    onChange={handleUserFormChange}
+                  />
+                  Admin Yetkisi
+                </label>
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  onClick={() => setShowUserModal(false)}
+                  className="btn-secondary"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="btn-primary"
+                >
+                  {loading ? 'Ekleniyor...' : 'Kullanıcı Ekle'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUserModal && (
+        <div className="modal-overlay" onClick={() => setShowEditUserModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Kullanıcı Düzenle</h3>
+              <button 
+                onClick={() => setShowEditUserModal(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateUser} className="modal-form">
+              <div className="form-group">
+                <label>Ad Soyad *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editUserForm.name}
+                  onChange={handleEditUserFormChange}
+                  required
+                  className="form-input"
+                  placeholder="Kullanıcı adı"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editUserForm.email}
+                  onChange={handleEditUserFormChange}
+                  required
+                  className="form-input"
+                  placeholder="kullanici@example.com"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Telefon</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={editUserForm.phone}
+                  onChange={handleEditUserFormChange}
+                  className="form-input"
+                  placeholder="5551234567"
+                />
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="verified"
+                    checked={editUserForm.verified}
+                    onChange={handleEditUserFormChange}
+                  />
+                  Hesap Doğrulandı
+                </label>
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="isAdmin"
+                    checked={editUserForm.isAdmin}
+                    onChange={handleEditUserFormChange}
+                  />
+                  Admin Yetkisi
+                </label>
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  onClick={() => setShowEditUserModal(false)}
+                  className="btn-secondary"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="btn-primary"
+                >
+                  {loading ? 'Güncelleniyor...' : 'Kullanıcıyı Güncelle'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Tour Modal */}
+      {showTourModal && (
+        <div className="modal-overlay" onClick={() => setShowTourModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Yeni Tur Ekle</h3>
+              <button 
+                onClick={() => setShowTourModal(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddTour} className="modal-form">
+              <div className="form-group">
+                <label>Tur Başlığı *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={tourForm.title}
+                  onChange={handleTourFormChange}
+                  required
+                  className="form-input"
+                  placeholder="Tur başlığı"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Açıklama</label>
+                <textarea
+                  name="description"
+                  value={tourForm.description}
+                  onChange={handleTourFormChange}
+                  className="form-input"
+                  placeholder="Tur açıklaması"
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Fiyat (₺) *</label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={tourForm.price}
+                    onChange={handleTourFormChange}
+                    required
+                    className="form-input"
+                    placeholder="1200"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Süre (Gün) *</label>
+                  <input
+                    type="number"
+                    name="duration"
+                    value={tourForm.duration}
+                    onChange={handleTourFormChange}
+                    required
+                    className="form-input"
+                    placeholder="3"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Lokasyon *</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={tourForm.location}
+                    onChange={handleTourFormChange}
+                    required
+                    className="form-input"
+                    placeholder="İstanbul"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Kategori *</label>
+                  <select
+                    name="category"
+                    value={tourForm.category}
+                    onChange={handleTourFormChange}
+                    required
+                    className="form-input"
+                  >
+                    <option value="Yaz Turları">Yaz Turları</option>
+                    <option value="Kültür Turları">Kültür Turları</option>
+                    <option value="Gemi Turları">Gemi Turları</option>
+                    <option value="Kıbrıs Turları">Kıbrıs Turları</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Resim URL</label>
+                <input
+                  type="url"
+                  name="image"
+                  value={tourForm.image}
+                  onChange={handleTourFormChange}
+                  className="form-input"
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Maksimum Katılımcı</label>
+                  <input
+                    type="number"
+                    name="maxParticipants"
+                    value={tourForm.maxParticipants}
+                    onChange={handleTourFormChange}
+                    className="form-input"
+                    placeholder="20"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Aktif</label>
+                  <div className="checkbox-group">
+                    <input
+                      type="checkbox"
+                      name="isActive"
+                      checked={tourForm.isActive}
+                      onChange={handleTourFormChange}
+                    />
+                    <span>Tur aktif olsun</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Başlangıç Tarihi</label>
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={tourForm.startDate}
+                    onChange={handleTourFormChange}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Bitiş Tarihi</label>
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={tourForm.endDate}
+                    onChange={handleTourFormChange}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowTourModal(false)} className="btn-secondary">
+                  İptal
+                </button>
+                <button type="submit" className="btn-primary">
+                  Tur Ekle
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Tour Modal */}
+      {showEditTourModal && (
+        <div className="modal-overlay" onClick={() => setShowEditTourModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Tur Düzenle</h3>
+              <button 
+                onClick={() => setShowEditTourModal(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateTour} className="modal-form">
+              <div className="form-group">
+                <label>Tur Başlığı *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={editTourForm.title}
+                  onChange={handleEditTourFormChange}
+                  required
+                  className="form-input"
+                  placeholder="Tur başlığı"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Açıklama</label>
+                <textarea
+                  name="description"
+                  value={editTourForm.description}
+                  onChange={handleEditTourFormChange}
+                  className="form-input"
+                  placeholder="Tur açıklaması"
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Fiyat (₺) *</label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={editTourForm.price}
+                    onChange={handleEditTourFormChange}
+                    required
+                    className="form-input"
+                    placeholder="1200"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Süre (Gün) *</label>
+                  <input
+                    type="number"
+                    name="duration"
+                    value={editTourForm.duration}
+                    onChange={handleEditTourFormChange}
+                    required
+                    className="form-input"
+                    placeholder="3"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Lokasyon *</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={editTourForm.location}
+                    onChange={handleEditTourFormChange}
+                    required
+                    className="form-input"
+                    placeholder="İstanbul"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Kategori *</label>
+                  <select
+                    name="category"
+                    value={editTourForm.category}
+                    onChange={handleEditTourFormChange}
+                    required
+                    className="form-input"
+                  >
+                    <option value="Yaz Turları">Yaz Turları</option>
+                    <option value="Kültür Turları">Kültür Turları</option>
+                    <option value="Gemi Turları">Gemi Turları</option>
+                    <option value="Kıbrıs Turları">Kıbrıs Turları</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Resim URL</label>
+                <input
+                  type="url"
+                  name="image"
+                  value={editTourForm.image}
+                  onChange={handleEditTourFormChange}
+                  className="form-input"
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Maksimum Katılımcı</label>
+                  <input
+                    type="number"
+                    name="maxParticipants"
+                    value={editTourForm.maxParticipants}
+                    onChange={handleEditTourFormChange}
+                    className="form-input"
+                    placeholder="20"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Aktif</label>
+                  <div className="checkbox-group">
+                    <input
+                      type="checkbox"
+                      name="isActive"
+                      checked={editTourForm.isActive}
+                      onChange={handleEditTourFormChange}
+                    />
+                    <span>Tur aktif olsun</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Başlangıç Tarihi</label>
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={editTourForm.startDate}
+                    onChange={handleEditTourFormChange}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Bitiş Tarihi</label>
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={editTourForm.endDate}
+                    onChange={handleEditTourFormChange}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowEditTourModal(false)} className="btn-secondary">
+                  İptal
+                </button>
+                <button type="submit" className="btn-primary">
+                  Güncelle
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}; 

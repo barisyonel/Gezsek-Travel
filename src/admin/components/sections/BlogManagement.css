@@ -1,0 +1,9 @@
+.blogs-section {
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .blogs-section {
+    padding: 1rem;
+  }
+} 

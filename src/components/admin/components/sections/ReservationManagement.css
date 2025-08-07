@@ -1,0 +1,239 @@
+.reservations-section {
+  padding: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input, .filter-select {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  min-width: 150px;
+}
+
+.search-input:focus, .filter-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.data-table th,
+.data-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow: hidden;
+}
+
+.data-table th {
+  padding: 1rem 0.5rem;
+  height: 50px;
+  min-height: 50px;
+}
+
+.data-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 50px;
+  padding: 1rem 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  position: relative;
+}
+
+.data-table th span {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table th:nth-child(1) { width: 15%; } /* Müşteri */
+.data-table th:nth-child(2) { width: 20%; } /* Tur */
+.data-table th:nth-child(3) { width: 12%; } /* Tarih */
+.data-table th:nth-child(4) { width: 10%; } /* Kişi Sayısı */
+.data-table th:nth-child(5) { width: 12%; } /* Toplam */
+.data-table th:nth-child(6) { width: 12%; } /* Durum */
+.data-table th:nth-child(7) { width: 19%; } /* İşlemler */
+
+.data-table td:last-child {
+  text-align: center;
+  width: 19%;
+  min-width: 150px;
+}
+
+.data-table th:last-child {
+  text-align: center;
+  min-width: 150px;
+  width: 19%;
+}
+
+.data-table tr:hover {
+  background: #f8f9fa;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.confirmed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.action-buttons {
+  display: flex !important;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  min-width: 120px;
+  width: 120px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-wrap: wrap;
+}
+
+.view-btn,
+.confirm-btn, 
+.cancel-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.view-btn {
+  background: #17a2b8;
+  color: white;
+}
+
+.view-btn:hover {
+  background: #138496;
+  transform: scale(1.05);
+}
+
+.confirm-btn {
+  background: #28a745;
+  color: white;
+}
+
+.confirm-btn:hover {
+  background: #218838;
+  transform: scale(1.05);
+}
+
+.cancel-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .reservations-section {
+    padding: 1rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .search-input, .filter-select {
+    min-width: 120px;
+  }
+  
+  .data-table {
+    font-size: 0.9rem;
+    min-width: 700px;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 100px;
+    width: 100px;
+  }
+  
+  .view-btn,
+  .confirm-btn,
+  .cancel-btn {
+    min-width: 80px;
+    font-size: 0.7rem;
+    padding: 6px 8px;
+  }
+} 
