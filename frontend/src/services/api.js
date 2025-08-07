@@ -1,4 +1,8 @@
-const API_BASE_URL = '/api';
+// Production ve development için API URL'leri
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
+// Socket.IO URL'i için ayrı export
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
 
 // API istekleri için yardımcı fonksiyon
 const apiRequest = async (endpoint, options = {}) => {

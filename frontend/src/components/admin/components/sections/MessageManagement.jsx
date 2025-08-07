@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { SOCKET_URL } from '../../../services/api';
 import './MessageManagement.css';
 
 const MessageManagement = () => {
@@ -209,7 +210,7 @@ const MessageManagement = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const newSocket = io('http://localhost:5001', {
+    const newSocket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       withCredentials: true

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import io from 'socket.io-client';
+import { SOCKET_URL } from '../../services/api';
 import './LiveChat.css';
 
 const LiveChat = () => {
@@ -27,7 +28,7 @@ const LiveChat = () => {
     if (!token) return;
 
     // Socket.IO bağlantısı
-    const newSocket = io('http://localhost:5001', {
+    const newSocket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       withCredentials: true,
