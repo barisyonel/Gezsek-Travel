@@ -1,0 +1,148 @@
+.tours-section {
+  padding: 2rem;
+}
+
+.tours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.tour-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.tour-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+.tour-image {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.tour-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tour-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tour-card:hover .tour-overlay {
+  opacity: 1;
+}
+
+.tour-overlay .edit-btn,
+.tour-overlay .delete-btn {
+  width: 35px;
+  height: 35px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.tour-overlay .edit-btn {
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+}
+
+.tour-overlay .delete-btn {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+}
+
+.tour-overlay .edit-btn:hover {
+  background: rgba(0, 123, 255, 1);
+  transform: scale(1.1);
+}
+
+.tour-overlay .delete-btn:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.tour-content {
+  padding: 1.5rem;
+}
+
+.tour-content h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.tour-category {
+  color: #667eea;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.tour-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #28a745;
+  margin: 0 0 0.5rem 0;
+}
+
+.tour-location {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.no-tours {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.no-tours p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .tours-section {
+    padding: 1rem;
+  }
+  
+  .tours-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .tour-content {
+    padding: 1rem;
+  }
+  
+  .tour-content h3 {
+    font-size: 1.1rem;
+  }
+} 

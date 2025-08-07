@@ -1,0 +1,14 @@
+# Görsel Dosyaları İçin Placeholder
+
+Bu klasör görsel dosyaları için oluşturulmuştur.
+Eksik olan görsel dosyalar:
+- gap.jpg
+- karadeniz.jpg  
+- kapadokya.jpg
+- abant.jpg
+- balkanlar.jpg
+- egeakdeniz.jpg
+
+Bu dosyaları eklemek için:
+1. Gerçek görsel dosyalarını bu klasöre kopyalayın
+2. Veya test için placeholder görseller kullanın
